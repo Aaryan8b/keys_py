@@ -1,6 +1,7 @@
 import json
 import numpy as np
 from pathlib import Path
+from score import standardized_manhattan
 
 DATA_DIR = Path("data")
 
@@ -14,12 +15,20 @@ def build_profile(samples):
     mu = X.mean(axis=0)
     sigma = X.std(axis=0)
     sigma = np.where(sigma < 5.0, 5.0, sigma)
-    threshold = np.mean(sigma) * 6.0
+
+    # Compute distances of enrollment samples to mean
+    distances = [standardized_manhattan(s, mu, sigma) for s in samples]
+
+    # Adaptive threshold (mean + 2*std), but cap at 0.6 for tight acceptance
+    threshold = np.mean(distances) + 2 * np.std(distances)
+    threshold = float(min(threshold, 0.6))
+
+    print(f"[PROFILE] mean score={np.mean(distances):.3f}, threshold={threshold:.3f}")
 
     return {
         "mu": mu.tolist(),
         "sigma": sigma.tolist(),
-        "threshold": float(threshold)
+        "threshold": threshold
     }
 
 def save_profile(user, profile):
