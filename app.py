@@ -83,7 +83,7 @@ class KeystrokeApp:
 
         # Start with green style by default
         self.score_bar = ttk.Progressbar(root, orient="horizontal", length=320, mode="determinate",
-                                         maximum=3, style="Green.Horizontal.TProgressbar")
+                                         maximum=15, style="Green.Horizontal.TProgressbar")
         self.score_bar.pack(pady=10)
 
         tk.Button(root, text="Reset", command=self.reset).pack(pady=5)
@@ -202,21 +202,33 @@ class KeystrokeApp:
             self.status.config(text="❌ No profile found. Enroll first.", fg="red")
             return
 
-        score = standardized_manhattan(features, profile['mu'], profile['sigma'])
+        # Reapply scaling + PCA
+        X = np.array(features)
+        scaler_mean = np.array(profile["scaler_mean"])
+        scaler_scale = np.array(profile["scaler_scale"])
+        X_norm = (X - scaler_mean) / scaler_scale
+
+        pca_components = np.array(profile["pca_components"])
+        pca_mean = np.array(profile["pca_mean"])
+        X_pca = (X_norm - pca_mean) @ pca_components.T
+
+        score = standardized_manhattan(X_pca, profile['mu'], profile['sigma'])
         threshold = profile['threshold']
         accept = score <= threshold
-        # clamp displayed score to the progress bar maximum (3)
-        self.score_bar['value'] = min(score, 3)
 
-        # switch bar color: green when accepted (score <= threshold), red otherwise
-        self.score_bar.configure(style=("Green.Horizontal.TProgressbar" if accept else "Red.Horizontal.TProgressbar"))
+        # Map raw score directly to the progress bar and clamp to the new maximum (15)
+        display_val = min(score, 15)
+        self.score_bar['value'] = display_val
 
-        if accept:
-            self.status.config(text=f"✅ Accepted (score={score:.1f})", fg="green")
-        else:
-            self.status.config(text=f"❌ Rejected (score={score:.1f})", fg="red")
+        # Switch progressbar style based on acceptance
+        style_name = "Green.Horizontal.TProgressbar" if accept else "Red.Horizontal.TProgressbar"
+        self.score_bar.configure(style=style_name)
 
-        print(f"[VERIFY] user={user}, score={score:.2f}, accept={accept}")
+        color = "green" if accept else "red"
+        msg = "✅ Accepted" if accept else "❌ Rejected"
+        self.status.config(text=f"{msg} (score={score:.3f}, thr={threshold:.3f})", fg=color)
+        print(f"[VERIFY] user={user}, score={score:.3f}, threshold={threshold:.3f}, accept={accept}")
+
 
     # -------------------------------
     # Reset Helpers
@@ -231,6 +243,7 @@ class KeystrokeApp:
         self.reset_input()
         self.status.config(text="Type the phrase and press Enter", fg="black")
         self.score_bar['value'] = 0
+        self.score_bar.configure(style="Green.Horizontal.TProgressbar")
 
 
 if __name__ == "__main__":
