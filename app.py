@@ -52,7 +52,38 @@ class KeystrokeApp:
         # Status + score bar
         self.status = tk.Label(root, text="Type the phrase and press Enter", font=("Helvetica", 10))
         self.status.pack(pady=5)
-        self.score_bar = ttk.Progressbar(root, orient="horizontal", length=320, mode="determinate", maximum=200)
+
+        # Configure green and red progress bar styles and set maximum to 3 (user-specified)
+        style = ttk.Style()
+        try:
+            # Force the simpler 'default' theme so color settings are more likely to be honored
+            style.theme_use('default')
+        except Exception:
+            pass
+
+        # Green style (used for accepted scores)
+        style.configure("Green.Horizontal.TProgressbar",
+                        troughcolor="#f5f5f5",
+                        background="#2ecc71",
+                        bordercolor="#2ecc71",
+                        lightcolor="#2ecc71",
+                        darkcolor="#27ae60")
+        style.map("Green.Horizontal.TProgressbar",
+                  background=[('!disabled', '#2ecc71'), ('disabled', '#2ecc71')])
+
+        # Red style (used for rejected scores)
+        style.configure("Red.Horizontal.TProgressbar",
+                        troughcolor="#f5f5f5",
+                        background="#e74c3c",
+                        bordercolor="#e74c3c",
+                        lightcolor="#e74c3c",
+                        darkcolor="#c0392b")
+        style.map("Red.Horizontal.TProgressbar",
+                  background=[('!disabled', '#e74c3c'), ('disabled', '#e74c3c')])
+
+        # Start with green style by default
+        self.score_bar = ttk.Progressbar(root, orient="horizontal", length=320, mode="determinate",
+                                         maximum=3, style="Green.Horizontal.TProgressbar")
         self.score_bar.pack(pady=10)
 
         tk.Button(root, text="Reset", command=self.reset).pack(pady=5)
@@ -174,7 +205,11 @@ class KeystrokeApp:
         score = standardized_manhattan(features, profile['mu'], profile['sigma'])
         threshold = profile['threshold']
         accept = score <= threshold
-        self.score_bar['value'] = min(score, 200)
+        # clamp displayed score to the progress bar maximum (3)
+        self.score_bar['value'] = min(score, 3)
+
+        # switch bar color: green when accepted (score <= threshold), red otherwise
+        self.score_bar.configure(style=("Green.Horizontal.TProgressbar" if accept else "Red.Horizontal.TProgressbar"))
 
         if accept:
             self.status.config(text=f"✅ Accepted (score={score:.1f})", fg="green")
