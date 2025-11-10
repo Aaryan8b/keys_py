@@ -19,9 +19,9 @@ def build_profile(samples):
     # Compute distances of enrollment samples to mean
     distances = [standardized_manhattan(s, mu, sigma) for s in samples]
 
-    # Adaptive threshold (mean + 2*std), but cap at 0.6 for tight acceptance
+    # Adaptive threshold (mean + 2*std), but cap at 0.44 for tighter acceptance
     threshold = np.mean(distances) + 2 * np.std(distances)
-    threshold = float(min(threshold, 0.6))
+    threshold = float(min(threshold, 0.44))
 
     print(f"[PROFILE] mean score={np.mean(distances):.3f}, threshold={threshold:.3f}")
 
