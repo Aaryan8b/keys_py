@@ -2,9 +2,12 @@ import numpy as np
 
 def extract_features(events, target_phrase):
     downs, ups = [], []
+
+    # Only record letters, numbers, and hyphen
     allowed = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-")
 
     for etype, key, t in events:
+        # Some keyboards send 'n' vs 'N' inconsistently
         if not any(c in allowed for c in key):
             continue
         if etype == "down":
@@ -12,31 +15,16 @@ def extract_features(events, target_phrase):
         elif etype == "up":
             ups.append(t)
 
+    # Soft alignment (trim to same length)
     n = min(len(downs), len(ups))
     if n < 2:
         return None
     downs, ups = downs[:n], ups[:n]
 
+    # Compute core features
     dwell = np.array(ups) - np.array(downs)
     dd = np.diff(downs)
     ud = np.array(downs[1:]) - np.array(ups[:-1])
 
-    # Di-graph (pairwise dwell)
-    digraph = (dwell[:-1] + dwell[1:]) / 2
-
-    # Tri-graph (3-key average)
-    if len(dwell) >= 3:
-        trigraph = (dwell[:-2] + dwell[1:-1] + dwell[2:]) / 3
-    else:
-        trigraph = np.array([])
-
-    # Ratios (reduce absolute timing effect)
-    with np.errstate(divide='ignore', invalid='ignore'):
-        ratio = np.divide(dwell[1:], dd, out=np.zeros_like(dd), where=dd!=0)
-
-    # Combine all features
-    features = np.concatenate([
-        dwell, dd, ud, digraph, trigraph, ratio
-    ]).tolist()
-
+    features = np.concatenate([dwell, dd, ud]).tolist()
     return features if len(features) > 0 else None
