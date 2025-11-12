@@ -62,12 +62,7 @@ Where:
    - Accounts for different scales across features
    - Makes features comparable regardless of natural timing variations
 
-2. **Manhattan vs Euclidean**
-   - Manhattan (L₁) norm sums absolute deviations
-   - More robust to outliers than Euclidean (L₂)
-   - Interpretable as "total standardized units of deviation"
-
-3. **Adaptive Thresholding**
+2. **Adaptive Thresholding**
    - mean(d) captures typical variation in enrollment
    - std(d) measures spread of enrollment variations
    - k * std(d) allows for natural variation while limiting false accepts
